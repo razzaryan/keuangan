@@ -1,48 +1,36 @@
-# Keuangan — aplikasi desktop Windows
+# Aplikasi Windows
 
-Aplikasi pencatatan keuangan pribadi berbentuk aplikasi Windows sungguhan
-(Qt/PySide6): jendela sendiri, sidebar, tabel, dialog, installer, dan
-uninstaller. Tidak butuh browser, terminal, atau koneksi internet.
-
-Proyek ini satu repo dengan bot Telegram. Logika pencatatan **satu sumber**
-(`bot/`), jadi perilaku di dua antarmuka tidak pernah berbeda.
+Versi desktop dari proyek ini: aplikasi Qt/PySide6 yang jalan sebagai jendela
+biasa, tidak lewat browser atau terminal.
 
 ![Dashboard](screenshots/light-dashboard.png)
 
----
+## Menjalankan
 
-## Coba langsung
+Dari source:
 
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m desktop
 ```
 
-## Pasang sebagai aplikasi Windows
-
-Installer ada di `dist\installer\Keuangan-Setup-1.0.0.exe` (34 MB). Klik dua
-kali, atau dari PowerShell:
-
-```powershell
-.\dist\installer\Keuangan-Setup-1.0.0.exe
-```
-
-Dipasang per-user tanpa UAC ke `%LOCALAPPDATA%\Programs\Keuangan`, dengan
+Atau pakai installer: `dist\installer\Keuangan-Setup-1.0.0.exe` (34 MB).
+Dipasang per-user tanpa UAC ke `%LOCALAPPDATA%\Programs\Keuangan`, ditambah
 shortcut Start Menu dan Desktop.
 
----
-
-## Fitur
+## Halaman
 
 | Halaman | Isi |
 |---|---|
-| **Dashboard** | Saldo, pemasukan/pengeluaran bulan ini, transaksi hari ini, peringatan anggaran, kotak catat cepat |
-| **Transaksi** | Tabel semua transaksi; filter bulan/jenis, cari catatan, ubah, hapus, undo |
-| **Laporan** | Ringkasan bulanan, pengeluaran per kategori, tren 12 bulan, export CSV |
-| **Anggaran** | Batas bulanan per kategori dengan progress bar dan status |
-| **Kategori** | CRUD kategori + kata kunci untuk tebakan otomatis |
-| **Pengaturan** | Nama, zona waktu, tema, lokasi data, backup, impor database |
+| Dashboard | Saldo, pemasukan/pengeluaran bulan ini, transaksi hari ini, peringatan anggaran, kotak catat cepat |
+| Transaksi | Tabel transaksi; filter bulan dan jenis, cari catatan, ubah, hapus, undo |
+| Laporan | Ringkasan bulanan, pengeluaran per kategori, tren 12 bulan, export CSV |
+| Anggaran | Batas bulanan per kategori, progress bar, status |
+| Kategori | Tambah, ubah, hapus kategori beserta kata kuncinya |
+| Pengaturan | Nama, zona waktu, tema, lokasi data, backup, impor database |
 
-Pencatatan memakai bahasa manusia yang sama dengan versi Telegram:
+Kotak catat cepat memakai parser yang sama dengan bot:
 
 ```
 kopi 18rb
@@ -53,54 +41,46 @@ kemarin bensin 25.000
 kopi 18rb @Makan
 ```
 
-Format nominal yang diterima: `18rb`, `1,5jt`, `25.000`, `Rp25.000`,
-`kopi18rb` (tanpa spasi). Tanggal: `kemarin`, `2 hari lalu`, `15/10`.
+Nominal yang diterima: `18rb`, `1,5jt`, `25.000`, `Rp25.000`, `kopi18rb`.
+Tanggal: `kemarin`, `2 hari lalu`, `15/10`. Sebelum disimpan, aplikasi
+menampilkan hasil tebakannya (jenis, kategori, nominal, tanggal).
 
----
-
-## Di mana data disimpan
+## Lokasi data
 
 ```
 %APPDATA%\Keuangan\finance.db        database SQLite
 %APPDATA%\Keuangan\exports\          ledger-<id>.csv, diperbarui otomatis
-%APPDATA%\Keuangan\backups\          backup harian (7 terakhir)
+%APPDATA%\Keuangan\backups\          backup harian, 7 terakhir
 %APPDATA%\Keuangan\keuangan.log      log
 ```
 
-Data **tidak** pernah ditulis ke folder instalasi, karena `Program Files`
-(read-only) akan membuat penyimpanan gagal tanpa jejak. Semua data tetap di
-komputer ini — tidak ada yang dikirim ke internet.
+Data tidak ditulis ke folder instalasi. Folder `Program Files` hanya bisa
+dibaca, jadi database yang dibuat di sana akan gagal tanpa pesan.
 
-**Mode portable:** letakkan file kosong bernama `portable.txt` di sebelah
-`Keuangan.exe`, maka data disimpan di `data\` di folder yang sama. Cocok untuk
-flashdisk.
-
-**Untuk pengujian:** set environment `KEUANGAN_DATA_DIR` ke folder lain.
-
----
+Mode portable: taruh file kosong `portable.txt` di sebelah `Keuangan.exe`,
+maka data pindah ke `data\` di folder yang sama. Untuk pengujian, set
+environment `KEUANGAN_DATA_DIR`.
 
 ## Struktur kode
 
 ```
-bot/            logika inti, dipakai bot Telegram DAN aplikasi desktop
-  entry.py        parse -> pilih jenis -> pilih kategori -> simpan
-  parser.py       bahasa manusia -> nominal/tanggal/kategori
+bot/            mesin pencatatan, dipakai bot dan aplikasi
+  entry.py        parse -> jenis -> kategori -> simpan
+  parser.py       teks bebas -> nominal, tanggal, jenis, kategori
   ledger.py       query, laporan, anggaran, export
-  csvsync.py      sinkronisasi CSV + sanitasi formula
-desktop/        lapisan tampilan Qt
-  service.py      semua operasi data, bebas Qt (mudah dites)
-  paths.py        lokasi data (APPDATA / portable / env)
-  theme.py        palet + stylesheet terang & gelap
+  csvsync.py      penulisan CSV dan sanitasi formula
+desktop/        lapisan tampilan
+  service.py      semua operasi database, tanpa Qt
+  paths.py        lokasi data
+  theme.py        palet dan stylesheet terang/gelap
   pages/          satu file per halaman
   dialogs.py      dialog transaksi, kategori, anggaran
   models.py       model tabel transaksi
 packaging/      spec PyInstaller, skrip Inno Setup, ikon, panduan
 ```
 
-`bot/handlers/*`, `bot/middlewares.py`, dan `bot/main.py` hanya dipakai bot
-Telegram dan tidak diikutkan ke installer desktop.
-
----
+`bot/handlers/`, `bot/middlewares.py`, dan `bot/main.py` hanya dipakai bot
+Telegram, tidak ikut ke installer desktop.
 
 ## Build installer
 
@@ -110,56 +90,39 @@ winget install JRSoftware.InnoSetup
 powershell -ExecutionPolicy Bypass -File packaging\build.ps1
 ```
 
-`build.ps1` menjalankan berurutan: tes → ikon → PyInstaller → uji exe →
-Inno Setup. Kalau satu langkah gagal, build berhenti.
-
-Hasil:
+Urutannya: tes, ikon, PyInstaller, uji exe, Inno Setup. Build berhenti di
+langkah pertama yang gagal.
 
 ```
-dist\Keuangan\Keuangan.exe                    106 MB (folder, 788 file)
-dist\installer\Keuangan-Setup-1.0.0.exe        34 MB
+dist\Keuangan\Keuangan.exe                  106 MB (folder, 788 file)
+dist\installer\Keuangan-Setup-1.0.0.exe      34 MB
 ```
 
-`--onedir` dipakai, bukan `--onefile`: satu file harus mengekstrak 106 MB ke
-folder temp setiap kali dijalankan (lambat) dan lebih sering memicu
-false-positive antivirus.
+PyInstaller dipakai dengan `--onedir`. Dengan `--onefile`, 106 MB harus
+diekstrak ke folder temp setiap kali aplikasi dibuka, dan hasilnya lebih
+sering ditandai antivirus.
 
----
-
-## Verifikasi
+## Pemeriksaan
 
 ```powershell
-# semua tes (bot + desktop service + UI offscreen)
-.\.venv\Scripts\python.exe -m pytest
-
-# aplikasi desktop tanpa jendela: semua halaman, dialog, tema
-.\.venv\Scripts\python.exe scripts\desktop_smoke.py
-
-# tangkapan layar semua halaman (terang & gelap)
-.\.venv\Scripts\python.exe scripts\desktop_screens.py
-
-# .exe hasil build benar-benar jalan dan membuat data
-.\.venv\Scripts\python.exe scripts\probe_exe.py
-
-# siklus penuh: install -> jalan -> update -> uninstall
-.\.venv\Scripts\python.exe scripts\probe_installer.py
+.\.venv\Scripts\python.exe -m pytest              # semua tes
+.\.venv\Scripts\python.exe scripts\desktop_smoke.py    # semua halaman tanpa jendela
+.\.venv\Scripts\python.exe scripts\desktop_screens.py  # screenshot terang & gelap
+.\.venv\Scripts\python.exe scripts\probe_exe.py        # exe hasil build
+.\.venv\Scripts\python.exe scripts\probe_installer.py  # install, update, uninstall
 ```
-
----
 
 ## Masalah umum
 
-**Aplikasi tidak terbuka.** Mungkin sudah berjalan (hanya satu instance
-diizinkan). Cek taskbar; kalau tidak ada, akhiri `Keuangan.exe` di Task Manager.
+**Aplikasi tidak terbuka.** Kemungkinan sudah berjalan; hanya satu instance
+yang diizinkan. Cek taskbar, atau akhiri `Keuangan.exe` di Task Manager.
 
-**Antivirus memblokir.** Exe tidak ditandatangani digital. Tekan *More info* →
-*Run anyway*, atau kecualikan folder aplikasi. Mode `onedir` dipilih justru
-untuk mengurangi kejadian ini.
+**Antivirus memblokir.** Exe tidak ditandatangani digital. Pilih *More info* →
+*Run anyway*, atau kecualikan folder aplikasi.
 
 **Data terasa hilang setelah update.** Data tidak pernah ada di folder
-aplikasi. Cek `%APPDATA%\Keuangan`. Kalau ada `portable.txt`, cek `data\` di
-folder aplikasi.
+aplikasi. Cek `%APPDATA%\Keuangan`, atau `data\` kalau ada `portable.txt`.
 
 **Pindah dari versi Telegram.** Pengaturan → *Impor database…* → pilih
-`finance.db` milik bot. Database lama dibackup dulu, dan penyalinan memakai API
-backup SQLite sehingga transaksi yang masih di file `-wal` ikut terbawa.
+`finance.db` milik bot. Database lama dibackup dulu. Penyalinan memakai API
+backup SQLite, jadi transaksi yang masih ada di file `-wal` ikut terbawa.

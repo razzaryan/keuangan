@@ -1,283 +1,196 @@
-# Keuangan — Bot Telegram & Aplikasi Windows
+# Keuangan
 
-Dua antarmuka, satu mesin pencatatan:
+Pencatatan keuangan pribadi dalam Rupiah. Input ditulis seperti chat biasa,
+lalu dipecah menjadi nominal, tanggal, jenis, dan kategori.
 
-| | |
+```
+kopi 18rb        -> keluar 18.000, kategori Makan
+gaji 5jt         -> masuk 5.000.000, kategori Gaji
+kemarin bensin 25.000
+makan 35k @Makan    (kategori dipaksa)
+```
+
+Ada dua cara memakainya, keduanya memakai database yang sama:
+
+| Antarmuka | Panduan |
 |---|---|
-| **Aplikasi Windows** | Aplikasi desktop sungguhan (Qt), installer + uninstaller, tanpa internet. → [DESKTOP.md](DESKTOP.md) |
-| **Bot Telegram** | Catat lewat chat dari HP. Butuh token bot. → [TUTORIAL.md](TUTORIAL.md) |
+| Aplikasi Windows (PySide6), ada installer dan uninstaller | [DESKTOP.md](DESKTOP.md) |
+| Bot Telegram | [TUTORIAL.md](TUTORIAL.md) |
 
-Keduanya memakai logika yang sama (`bot/entry.py`, `bot/parser.py`,
-`bot/ledger.py`), jadi tebakan kategori dan angkanya selalu identik.
+Logika pencatatan ada di `bot/` dan dipakai oleh keduanya, jadi hasil parse
+dan tebakan kategori tidak berbeda antara aplikasi dan bot.
+
+## Isi repo
 
 ```
-kopi 18rb          → pengeluaran Rp 18.000, kategori Makan
-gaji 5jt           → pemasukan Rp 5.000.000, kategori Gaji
-kemarin bensin 25.000 → otomatis tanggal kemarin
-makan 35k @Makan   → kategori dipaksa
+bot/          mesin pencatatan
+  parser.py     teks bebas -> nominal, tanggal, jenis, kategori
+  ledger.py     query saldo, laporan, anggaran, export
+  entry.py      alur parse -> simpan, dipakai dua antarmuka
+  csvsync.py    tulis file CSV
+  handlers/     handler bot Telegram
+desktop/      aplikasi Windows (Qt)
+  service.py    semua operasi database, tanpa Qt
+  pages/        satu file per halaman
+packaging/    spec PyInstaller, skrip Inno Setup, ikon, panduan
+tests/        288 tes
 ```
 
-> **Aplikasi .exe:** [DESKTOP.md](DESKTOP.md)
-> **Versi Telegram:** [TUTORIAL.md](TUTORIAL.md)
+## Aplikasi Windows
 
----
-
-## 1. Fitur
-
-| Fitur | Command (Telegram) | Aplikasi desktop |
-|---|---|---|
-| Catat pengeluaran / pemasukan | teks bebas, `/keluar`, `/masuk` | kotak Catat cepat |
-| Saldo & ringkasan bulan ini | `/saldo` | halaman Dashboard |
-| Laporan bulanan + top kategori + perbandingan bulan lalu | `/laporan` | halaman Laporan |
-| Rekap harian | `/rekap` | kartu di Dashboard |
-| Anggaran bulanan + peringatan 80%/100% | `/budget` | halaman Anggaran |
-| Kelola kategori (tambah, keyword, hapus) | `/kategori` | halaman Kategori |
-| Riwayat & pencarian | `/terakhir`, `/cari` | halaman Transaksi |
-| Ubah catatan yang salah | — | klik dua kali di tabel |
-| Hapus salah catat | `/undo`, `/hapus <id>` | tombol Hapus / Delete / Undo |
-| Export CSV (buka di Excel) | `/export` | tombol Export CSV |
-| **CSV ledger otomatis** — semua transaksi langsung masuk file CSV | `/ledger` | diperbarui otomatis |
-| Rekap otomatis tiap hari | scheduler | tampil saat aplikasi dibuka |
-
-**Parser input** mendukung `18rb`, `18rb`, `18 ribu`, `18k`, `5jt`, `5 juta`,
-`1,5jt`, `2.5jt`, `25.000`, `Rp 25.000`, `+500rb`, `-100rb`.
-
----
-
-## 2. Mulai cepat
-
-### 2.0 Aplikasi desktop (tanpa Telegram)
+Jalankan dari source:
 
 ```powershell
+python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m desktop
 ```
 
-Atau pasang installer siap pakai: `dist\installer\Keuangan-Setup-1.0.0.exe`.
-Detail lengkap ada di [DESKTOP.md](DESKTOP.md). Bagian di bawah ini khusus
-versi Telegram.
+Atau pakai installer di `dist\installer\Keuangan-Setup-1.0.0.exe`.
+Cara build sendiri ada di [DESKTOP.md](DESKTOP.md).
 
-### 2.1 Buat bot di Telegram
+## Bot Telegram
 
-1. Chat [@BotFather](https://t.me/BotFather) → `/newbot`.
-2. Simpan **token** (bentuknya `123456789:AAH...`).
-
-### 2.2 user ID 
-
-Kirim pesan apa saja ke bot barumu, open browser:
-
-```
-https://api.telegram.org/bot<TOKEN>/getUpdates
-```
-
-Cari `"from":{"id": 123456789` — itu user ID kamu.
-
-### 2.3 Install
-
-```powershell
-cd C:\Users\RAZZ\source\repos\finance-bot
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-### 2.4 Konfigurasi
+Membuat bot, mengisi token, dan menjalankannya dibahas lengkap di
+[TUTORIAL.md](TUTORIAL.md). Ringkasnya:
 
 ```powershell
 Copy-Item .env.example .env
-notepad .env
+notepad .env          # isi BOT_TOKEN dan TELEGRAM_OWNER_ID
+.\.venv\Scripts\python.exe -m bot.main
 ```
 
-Isi minimal dua baris:
+Setelah bot jalan, kirim `/start`.
 
-```ini
-BOT_TOKEN=123456789:AAH...
-TELEGRAM_OWNER_ID=123456789
-```
-
-### 2.5 Jalankan
-
-```powershell
-python -m bot.main
-```
-
-Lalu kirim `/start` ke bot. 
-
----
-
-## 3. Konfigurasi lengkap
+## Konfigurasi bot
 
 | Variabel | Default | Keterangan |
 |---|---|---|
-| `BOT_TOKEN` | — | **wajib**, dari @BotFather |
-| `TELEGRAM_OWNER_ID` | — | **wajib**, whitelist user. Bisa lebih dari satu, pisah koma |
-| `TIMEZONE` | `Asia/Jakarta` | zona waktu untuk tanggal & rekap |
-| `RECAP_HOUR` | `21` | jam kirim rekap harian (0–23). `0` = mati |
+| `BOT_TOKEN` | wajib | token dari @BotFather |
+| `TELEGRAM_OWNER_ID` | wajib | user ID yang boleh memakai bot, bisa lebih dari satu (pisah koma) |
+| `TIMEZONE` | `Asia/Jakarta` | zona waktu untuk tanggal dan rekap |
+| `RECAP_HOUR` | `21` | jam kirim rekap harian, `0` untuk mematikan |
 | `DB_PATH` | `data/finance.db` | lokasi database |
-| `DATA_DIR` | `data` | folder data (backup, export) |
-| `BACKUP_ENABLED` | `true` | backup harian otomatis jam 03:00 |
+| `DATA_DIR` | `data` | folder backup dan export |
+| `BACKUP_ENABLED` | `true` | backup harian jam 03:00 |
 | `BACKUP_KEEP` | `7` | jumlah backup yang disimpan |
 | `DEBUG` | `false` | log verbose |
 
-> ⚠️ **`TELEGRAM_OWNER_ID` wajib diisi.**
+Bot tidak mau start kalau `TELEGRAM_OWNER_ID` kosong. Tanpa itu siapa pun yang
+menemukan bot bisa menulis ke database.
 
----
+## Perintah bot
 
-## 4. Perintah
+Mencatat:
 
-### Mencatat
 ```
+kopi 18rb                  teks bebas, paling cepat
+makan 35k @Makan           paksa kategori
+kemarin bensin 25000       tanggal mundur
++500rb jual motor          paksa pemasukan
+-100rb donasi              paksa pengeluaran
 /keluar 25000 makan siang
 /masuk 5000000 gaji oktober
-kopi 18rb                       ← teks bebas, paling cepat
-makan 35k @Makan                ← @NamaKategori memaksa kategori
-kemarin bensin 25000
--100rb donasi                   ← tanda - paksa pengeluaran
-+500rb jual motor               ← tanda + paksa pemasukan
 ```
 
-### Melihat
+Melihat:
+
 ```
-/saldo                saldo, ringkasan bulan ini
-/laporan              laporan bulan ini
-/laporan 2026-09      bulan tertentu
-/laporan september    nama bulan
+/saldo
+/laporan
+/laporan 2026-09
+/laporan september
 /laporan bulan lalu
-/rekap                rekap hari ini
-/terakhir 5           lima transaksi terakhir
-/cari kopi            cari transaksi
-/histori              tren 6 bulan
+/rekap
+/terakhir 5
+/cari kopi
+/histori
 ```
 
-### Merapikan
+Merapikan:
+
 ```
-/undo                 hapus transaksi terakhir
-/hapus 42             hapus transaksi #42
-/kategori             daftar kategori
-/kategori tambah keluar Kopi ☕ kopi,latte,espresso
+/undo
+/hapus 42
+/kategori
+/kategori tambah keluar Kopi kopi,latte,espresso
 /kategori kw Kopi kopi,latte
-/kategori hapus Kopi  (hanya kalau belum dipakai)
+/kategori hapus Kopi
 /budget set Makan 1500000
 /budget
 /budget hapus Makan
-/export               CSV bulan ini
-/ledger               CSV semua transaksi (file selalu ter-update)
+/export
+/ledger
 ```
 
-### CSV otomatis
-Setiap transaksi langsung ditambahkan ke `data/exports/ledger-<id>.csv`.
-File ini bisa dibuka di Excel kapan saja tanpa perlu `/export`. Setelah
-`/undo` atau `/hapus`, baris di file ikut terhapus.
+`/export` mengirim CSV satu bulan. `/ledger` mengirim CSV semua transaksi.
 
-Catatan keamanan: sel yang diawali `=`, `+`, `-`, `@` diberi awalan `'`
-supaya Excel tidak menjalankannya sebagai formula (CSV injection).
+## File CSV
 
-### Anggaran
-Setelah transaksi, bot otomatis memberi peringatan bila kategori sudah
-terpakai ≥80% atau melewati batas.
+Setiap transaksi ikut ditulis ke `data/exports/ledger-<id>.csv` (bot) atau
+`%APPDATA%\Keuangan\exports\` (aplikasi), jadi bisa dibuka di Excel tanpa
+menjalankan export. Setelah hapus, barisnya ikut hilang.
 
----
+Sel yang diawali `=`, `+`, `-`, atau `@` diberi tanda kutip di depan supaya
+Excel tidak menjalankannya sebagai formula.
 
-## 5. Struktur project
+## Format nominal dan tanggal
 
-```
-finance-bot/
-├── bot/
-│   ├── main.py           entry point, dispatcher, scheduler
-│   ├── config.py         baca & validasi .env
-│   ├── db.py             engine SQLite
-│   ├── models.py         tabel SQLModel
-│   ├── parser.py         "18rb" → 18000  ← paling banyak logika
-│   ├── timeutil.py       konversi timezone (UTC ⇄ lokal)
-│   ├── formatting.py     format Rupiah & pesan HTML
-│   ├── ledger.py         query: saldo, laporan, anggaran, export
-│   ├── middlewares.py    auth whitelist, session, error handling
-│   ├── services_defaults.py  seed user & kategori awal
-│   ├── handlers/         misc, transactions, reports, categories, budgets
-│   └── jobs/             rekap.py, backup.py
-├── tests/                128 test (unit + end-to-end)
-├── scripts/              demo_report.py, smoke_boot.py, backup.ps1
-├── requirements.txt
-└── .env.example
-```
+Nominal: `18rb`, `18 ribu`, `18k`, `5jt`, `5 juta`, `1,5jt`, `2.5jt`,
+`25.000`, `Rp 25.000`, `kopi18rb`, `+500rb`, `-100rb`.
 
----
+Tanggal: `kemarin`, `kmrn`, `2 hari lalu`, `kemarin lusa`, `15/10`,
+`15/10/2026`, `2026-10-15`.
 
-## 6. Testing
+Kategori ditebak dari kata kunci yang tersimpan per kategori. Kalau tidak ada
+yang cocok, transaksi masuk ke "Lain-lain" (keluar) atau "Lainnya" (masuk).
+
+## Tes
 
 ```powershell
-# semua test (184 test)
-python -m pytest
-
-# hanya parser (cepat, tanpa database)
-python -m pytest tests/test_parser.py -v
-
-# test regresi bug yang pernah ditemukan
-python -m pytest tests/test_regression.py -v
+.\.venv\Scripts\python.exe -m pytest
 ```
 
-Test mencakup **end-to-end**: menjalankan dispatcher aiogram sungguhan dengan
-Telegram palsu, jadi alur `pesan masuk → parse → simpan → balas` ikut diuji.
+Ada 288 tes. Bagian bot memakai dispatcher aiogram sungguhan dengan session
+Telegram palsu, jadi alur pesan masuk sampai balasan ikut diuji. Bagian
+desktop dites tanpa membuka jendela (`QT_QPA_PLATFORM=offscreen`).
 
-### QA probe (audit mandiri)
-
-Skrip di `scripts/qa_*.py` adalah audit adversarial. Jalankan semuanya:
+Skrip tambahan:
 
 ```powershell
-python scripts/qa_probe.py            # parser & nominal
-python scripts/qa_probe_db.py         # integritas & konsistensi angka
-python scripts/qa_probe_message.py    # HTML valid & batas 4096 char
-python scripts/qa_probe_kategori.py   # akurasi klasifikasi kategori
-python scripts/qa_probe_robust.py     # pesan beruntun, DB terkunci, input aneh
-python scripts/qa_probe_boot_real.py  # bot start nyata & shutdown bersih
+python scripts/qa_probe.py            # parser dan nominal
+python scripts/qa_probe_db.py         # konsistensi angka di database
+python scripts/qa_probe_message.py    # HTML valid, batas 4096 karakter
+python scripts/qa_probe_kategori.py   # akurasi tebakan kategori
+python scripts/qa_probe_robust.py     # pesan beruntun, database terkunci
+python scripts/qa_probe_boot_real.py  # boot dan shutdown bot
+python scripts/desktop_smoke.py       # semua halaman aplikasi
+python scripts/probe_exe.py           # exe hasil build
+python scripts/probe_installer.py     # install, update, uninstall
 ```
 
-Semua harus melaporkan `TOTAL TEMUAN: 0` dan `AKURASI: 100.0%`.
+## Menjalankan bot terus-menerus
 
-### Alat bantu lain
+Di Windows, pakai Task Scheduler:
 
 ```powershell
-python scripts/demo_report.py        # lihat contoh laporan tanpa Telegram
-python scripts/smoke_boot.py         # cek bot bisa boot (tanpa jaringan)
-python scripts/simulate_session.py   # simulasi sesi pemakaian nyata
-python scripts/probe_parser.py       # uji parser dengan kalimat sehari-hari
+schtasks /create /tn "KeuanganBot" /tr "C:\path\keuangan\.venv\Scripts\python.exe -m bot.main" /sc onstart /ru SYSTEM
 ```
 
----
+Komputer harus menyala dan tidak sleep.
 
-## 7. Deploy
-
-### Opsi A — PC sendiri (gratis)
-
-Agar bot tetap hidup setelah terminal ditutup, jalankan lewat Task Scheduler:
-
-```powershell
-schtasks /create /tn "FinanceBot" /tr "C:\Users\RAZZ\source\repos\finance-bot\.venv\Scripts\python.exe -m bot.main" /sc onstart /ru SYSTEM
-```
-
-Catatan: PC harus menyala/not sleep.
-
-### Opsi B — VPS Linux (disarankan)
-
-```bash
-sudo apt update && sudo apt install -y python3-venv
-cd /opt && sudo git clone <repo> finance-bot && cd finance-bot
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env && nano .env
-```
-
-`/etc/systemd/system/finance-bot.service`:
+Di VPS, pakai systemd. Buat `/etc/systemd/system/keuangan-bot.service`:
 
 ```ini
 [Unit]
-Description=Finance Telegram Bot
+Description=Keuangan Telegram Bot
 After=network-online.target
 
 [Service]
 Type=simple
 User=financebot
-WorkingDirectory=/opt/finance-bot
-ExecStart=/opt/finance-bot/.venv/bin/python -m bot.main
+WorkingDirectory=/opt/keuangan
+ExecStart=/opt/keuangan/.venv/bin/python -m bot.main
 Restart=always
 RestartSec=10
 
@@ -287,50 +200,39 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now finance-bot
-sudo journalctl -u finance-bot -f      # lihat log
+sudo systemctl enable --now keuangan-bot
+sudo journalctl -u keuangan-bot -f
 ```
 
----
+## Backup
 
-## 8. Backup
-
-**Otomatis:** job harian jam 03:00 menyimpan `data/backups/finance-*.db`,
-menyimpan `BACKUP_KEEP` file terakhir.
-
-**Manual:**
+Bot membuat backup harian ke `data/backups/` dan menyimpan 7 file terakhir.
+Backup manual:
 
 ```powershell
 .\scripts\backup.ps1
 ```
 
-Restore:
+Restore, setelah bot dihentikan:
 
 ```powershell
-Stop-Process -Name python    # hentikan bot dulu
 Copy-Item data\backups\finance-20261020-030000.db data\finance.db -Force
-python -m bot.main
 ```
 
-> File `.db` adalah seluruh riwayat keuanganmu. **Jangan commit ke Git**
-> (sudah masuk `.gitignore`).
+File `.db` berisi seluruh riwayat keuangan. Jangan di-commit; sudah masuk
+`.gitignore`.
 
----
+## Masalah yang sering muncul
 
-## 9. Troubleshooting
-
-| Masalah | Penyebab & solusi |
+| Gejala | Penyebab |
 |---|---|
-| `BOT_TOKEN belum diisi` | `.env` belum ada. `Copy-Item .env.example .env` lalu isi |
-| `Format BOT_TOKEN tidak valid` | Ada spasi/kutip. Harus `123456789:AAH...` |
-| `TELEGRAM_OWNER_ID wajib diisi` | Isi dengan user ID angka dari `getUpdates` |
-| Bot diam saja | Cek `python -m bot.main` masih jalan; lihat log |
-| `Conflict: terminated by other getUpdates` | Ada 2 instance bot. Tutup salah satu |
-| Akses ditolak | User ID kamu tidak cocok dengan `TELEGRAM_OWNER_ID` |
-| Bot mati saat PC sleep | Pakai VPS atau atur power plan |
-
----
+| `BOT_TOKEN belum diisi` | `.env` belum dibuat |
+| `Format BOT_TOKEN tidak valid` | ada spasi atau tanda kutip di nilai token |
+| `TELEGRAM_OWNER_ID wajib diisi` | belum diisi, ambil dari `getUpdates` |
+| Bot diam | prosesnya mati, atau ada dua instance berjalan |
+| `Conflict: terminated by other getUpdates` | dua bot memakai token yang sama |
+| Akses ditolak | user ID tidak cocok dengan `TELEGRAM_OWNER_ID` |
 
 ## Lisensi
 
-MIT — bebas dipakai dan diubah untuk keperluan pribadi.
+MIT.
