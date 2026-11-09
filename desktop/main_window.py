@@ -34,7 +34,7 @@ from desktop.service import LedgerService
 from desktop.theme import apply_theme, palette_for
 
 NAV_ITEMS = [
-    ("dashboard", "Dashboard"),
+    ("dashboard", "Ringkasan"),
     ("transactions", "Transaksi"),
     ("reports", "Laporan"),
     ("budgets", "Anggaran"),
@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         self._mode = self._settings.value("theme", "light") or "light"
         self.palette_colors = palette_for(self._mode)
 
-        self.setWindowTitle("Keuangan — Keuangan Pribadi")
+        self.setWindowTitle(APP_NAME)
         self.resize(1180, 760)
         self.setMinimumSize(940, 620)
 
@@ -100,8 +100,9 @@ class MainWindow(QMainWindow):
         self.setStatusBar(status)
         self.status_label = QLabel("")
         status.addWidget(self.status_label)
-        self.db_label = QLabel(str(self.service.db_path))
+        self.db_label = QLabel("Data lokal")
         self.db_label.setObjectName("Faint")
+        self.db_label.setToolTip(str(self.service.db_path))
         status.addPermanentWidget(self.db_label)
 
         self._build_menu()

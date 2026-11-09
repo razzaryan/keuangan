@@ -56,7 +56,7 @@ def main() -> int:
 
     for index, (key, label) in enumerate(
         [
-            ("dashboard", "Dashboard"),
+            ("dashboard", "Ringkasan"),
             ("transactions", "Transaksi"),
             ("reports", "Laporan"),
             ("budgets", "Anggaran"),
@@ -131,7 +131,6 @@ def _category_dialog_smoke(window) -> None:
 
     dialog = CategoryDialog(window)
     dialog.name_input.setText("Uji Kategori")
-    dialog.emoji_input.setText("🧪")
     dialog.keywords_input.setText("uji,tes")
     dialog._on_accept()
     assert dialog.result_values is not None

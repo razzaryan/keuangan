@@ -79,7 +79,7 @@ class TxRow:
     amount: int
     note: str
     category_id: int
-    category: str  # sudah termasuk emoji, mis. "🍜 Makan"
+    category: str  # nama tanpa emoji, mis. "Makan"
     account: str
 
     @property
@@ -129,7 +129,7 @@ class CategoryRow:
 
     @property
     def label(self) -> str:
-        return f"{self.emoji} {self.name}".strip()
+        return self.name
 
 
 @dataclass(frozen=True)
@@ -248,7 +248,6 @@ class LedgerService:
     # ---------------------------------------------------------- konversi
 
     def _to_row(self, trx: Transaction, category: Category | None, accounts: dict[int, str]) -> TxRow:
-        emoji = (getattr(category, "emoji", "") or "").strip()
         name = getattr(category, "name", "") or "Tanpa Kategori"
         return TxRow(
             id=int(trx.id),
@@ -257,7 +256,7 @@ class LedgerService:
             amount=int(trx.amount),
             note=(trx.note or "").strip(),
             category_id=int(trx.category_id),
-            category=f"{emoji} {name}".strip(),
+            category=name,
             account=accounts.get(trx.account_id, ""),
         )
 
@@ -443,7 +442,7 @@ class LedgerService:
             budgets = [
                 BudgetRow(
                     category_id=int(cat.id),
-                    category=f"{(cat.emoji or '').strip()} {cat.name}".strip(),
+                    category=cat.name,
                     limit=int(limit),
                     used=int(used),
                 )
@@ -505,7 +504,7 @@ class LedgerService:
             return [
                 BudgetRow(
                     category_id=int(cat.id),
-                    category=f"{(cat.emoji or '').strip()} {cat.name}".strip(),
+                    category=cat.name,
                     limit=int(limit),
                     used=int(used),
                 )
@@ -776,10 +775,10 @@ class LedgerService:
             return None
         ratio = used / limit
         if ratio >= 1:
-            return f"🚨 Anggaran {category.name} lewat: {_rp(used)} / {_rp(limit)}"
+            return f"Anggaran {category.name} lewat: {_rp(used)} / {_rp(limit)}"
         if ratio >= 0.8:
             return (
-                f"⚠️ Anggaran {category.name} terpakai {int(round(ratio * 100))}%. "
+                f"Anggaran {category.name} terpakai {int(round(ratio * 100))}%. "
                 f"Sisa {_rp(limit - used)}."
             )
         return None

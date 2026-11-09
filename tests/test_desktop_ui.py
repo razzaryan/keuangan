@@ -286,3 +286,74 @@ def test_semua_halaman_punya_refresh_aman(window, qapp):
     for page in window.pages.values():
         page.refresh()
         qapp.processEvents()
+
+
+# ---------------------------------------------------------------- fase 0
+
+
+def test_navigasi_memakai_nama_indonesia(window):
+    labels = [window.nav.item(i).text() for i in range(window.nav.count())]
+    assert "Ringkasan" in labels
+    assert "Dashboard" not in labels
+
+
+def test_judul_jendela_tidak_mengulang_nama(window):
+    assert window.windowTitle() == "Keuangan"
+
+
+def test_status_bar_tidak_membocorkan_path_database(window):
+    assert "#" not in window.db_label.text()
+    assert "finance.db" not in window.db_label.text()
+    assert window.db_label.toolTip()
+
+
+def test_tampilan_transaksi_tanpa_id_internal(window, svc, qapp):
+    svc.add_from_text("kopi 18rb")
+    page = window.pages["dashboard"]
+    page.quick_input.setText("teh 5rb")
+    page._submit_quick()
+    qapp.processEvents()
+    assert "#" not in page.quick_status.text()
+
+
+def test_kategori_tampil_tanpa_emoji(window, svc, qapp):
+    row = next(c for c in svc.categories() if c.kind == TYPE_EXPENSE)
+    svc.update_category(row.id, name=row.name, emoji="\U0001f374", keywords=row.keywords)
+
+    page = window.pages["categories"]
+    page.refresh()
+    qapp.processEvents()
+    for index in range(page.table.rowCount()):
+        assert "\U0001f374" not in page.table.item(index, 0).text()
+
+
+def test_dialog_kategori_mempertahankan_emoji_lama(window, svc):
+    row = svc.categories(kind=TYPE_EXPENSE)[0]
+    svc.update_category(row.id, name=row.name, emoji="\u2615", keywords=row.keywords)
+    updated = next(c for c in svc.categories() if c.id == row.id)
+
+    dialog = CategoryDialog(window, row=updated)
+    dialog.name_input.setText("Ngopi")
+    dialog._on_accept()
+
+    assert dialog.result_values is not None
+    assert dialog.result_values["emoji"] == "\u2615"
+
+
+def test_teks_sekunder_penuhi_kontras_45(qapp):
+    def relative_luminance(hex_color: str) -> float:
+        value = hex_color.lstrip("#")
+        channels = [int(value[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+        linear = [
+            c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+            for c in channels
+        ]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    for mode in ("light", "dark"):
+        colors = palette_for(mode)
+        base = relative_luminance(colors["surface"])
+        for key in ("text", "muted", "faint"):
+            other = relative_luminance(colors[key])
+            ratio = (max(base, other) + 0.05) / (min(base, other) + 0.05)
+            assert ratio >= 4.5, f"{mode}/{key} hanya {ratio:.2f}:1"

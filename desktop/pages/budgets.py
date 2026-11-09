@@ -109,7 +109,7 @@ class BudgetsPage(Page):
         footer.addWidget(delete_button)
         self.content.addLayout(footer)
 
-        hint = QLabel("Peringatan otomatis muncul di Dashboard saat pemakaian mencapai 80%.")
+        hint = QLabel("Peringatan otomatis muncul di Ringkasan saat pemakaian mencapai 80%.")
         hint.setObjectName("Faint")
         self.content.addWidget(hint)
 

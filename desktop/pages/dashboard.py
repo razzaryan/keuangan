@@ -24,7 +24,7 @@ from desktop.widgets import BarWidget, Card, EmptyState, StatCard, transaction_r
 class DashboardPage(Page):
     def __init__(self, service, palette, parent=None) -> None:
         super().__init__(service, palette, parent)
-        self.set_header("Dashboard", "Ringkasan keuanganmu hari ini.")
+        self.set_header("Ringkasan", "Keuanganmu hari ini.")
         self._categories = []
         self._build()
         self._flash_timer = QTimer(self)
@@ -121,17 +121,16 @@ class DashboardPage(Page):
         if kind not in (TYPE_INCOME, TYPE_EXPENSE):
             kind = TYPE_EXPENSE
 
-        label = "🟢 Masuk" if kind == TYPE_INCOME else "🔴 Keluar"
+        label = "Masuk" if kind == TYPE_INCOME else "Keluar"
         category = match_category(
             [c for c in self._categories if c.kind == kind], result.note
         )
         category_name = category.name if category else (
             "Lainnya" if kind == TYPE_INCOME else "Lain-lain"
         )
-        emoji = category.emoji if category else ("➕" if kind == TYPE_INCOME else "📦")
 
         self.quick_preview.setText(
-            f"{label} · {emoji} {category_name} · {money(result.amount)} · {result.date_label}"
+            f"{label} · {category_name} · {money(result.amount)} · {result.date_label}"
         )
         self.quick_preview.setObjectName("Hint")
         self._restyle_quick()
@@ -169,8 +168,8 @@ class DashboardPage(Page):
         row = outcome.row
         sign = "+" if row.kind == TYPE_INCOME else "−"
         message = (
-            f"✅ Tercatat #{row.id} · {row.category} · {sign}{money(row.amount)}"
-            f" — {row.note or '(tanpa catatan)'}"
+            f"Tercatat · {row.category} · {sign}{money(row.amount)}"
+            f" · {row.note or '(tanpa catatan)'}"
         )
         if outcome.budget_note:
             message += f"\n{outcome.budget_note}"

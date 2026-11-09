@@ -5,7 +5,6 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -20,7 +19,7 @@ from bot.ledger import LedgerError
 from bot.models import TYPE_EXPENSE, TYPE_INCOME
 from desktop.dialogs import CategoryDialog
 from desktop.pages.base import Page
-from desktop.widgets import Card
+from desktop.widgets import Card, ComboBox
 
 
 class CategoriesPage(Page):
@@ -43,7 +42,7 @@ class CategoriesPage(Page):
         bar = QHBoxLayout()
         bar.setSpacing(10)
 
-        self.kind_combo = QComboBox()
+        self.kind_combo = ComboBox()
         self.kind_combo.addItem("Semua", None)
         self.kind_combo.addItem("Keluar", TYPE_EXPENSE)
         self.kind_combo.addItem("Masuk", TYPE_INCOME)
@@ -109,7 +108,7 @@ class CategoriesPage(Page):
 
         self.table.setRowCount(len(rows))
         for index, row in enumerate(rows):
-            name_item = QTableWidgetItem(f"{row.emoji} {row.name}".strip())
+            name_item = QTableWidgetItem(row.name)
             if row.is_default:
                 name_item.setToolTip("Kategori bawaan")
             self.table.setItem(index, 0, name_item)

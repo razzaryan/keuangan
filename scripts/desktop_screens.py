@@ -10,6 +10,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "windows")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from desktop.main_window import MainWindow
@@ -63,6 +64,9 @@ def main() -> int:
         ):
             window.nav.setCurrentRow(row)
             app.processEvents()
+            # Beri satu putaran event loop untuk menyelesaikan repaint tabel
+            # sebelum grab(); grab() membaca frame yang belum selesai.
+            QTest.qWait(80)
             path = OUT / f"{mode}-{label}.png"
             window.grab().save(str(path))
             print("simpan", path.name)

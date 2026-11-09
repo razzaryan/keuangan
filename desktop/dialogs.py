@@ -6,8 +6,6 @@ from datetime import datetime
 
 from PySide6.QtCore import QDate, QTime, Qt
 from PySide6.QtWidgets import (
-    QComboBox,
-    QDateEdit,
     QDialog,
     QFormLayout,
     QHBoxLayout,
@@ -23,6 +21,7 @@ from bot.formatting import money
 from bot.models import TYPE_EXPENSE, TYPE_INCOME
 from bot.parser import ParseError, parse_amount
 from desktop.service import CategoryRow, TxRow
+from desktop.widgets import ComboBox, DateEdit
 
 
 class _BaseDialog(QDialog):
@@ -90,7 +89,7 @@ class TransactionDialog(_BaseDialog):
         self._row = row
         self.result_values: dict | None = None
 
-        self.kind_combo = QComboBox()
+        self.kind_combo = ComboBox()
         self.kind_combo.addItem("Keluar (pengeluaran)", TYPE_EXPENSE)
         self.kind_combo.addItem("Masuk (pemasukan)", TYPE_INCOME)
 
@@ -108,11 +107,11 @@ class TransactionDialog(_BaseDialog):
         amount_layout.addWidget(self.amount_input)
         amount_layout.addWidget(self.amount_preview)
 
-        self.category_combo = QComboBox()
+        self.category_combo = ComboBox()
         self.note_input = QLineEdit()
         self.note_input.setPlaceholderText("mis. kopi pagi")
 
-        self.date_edit = QDateEdit()
+        self.date_edit = DateEdit()
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setDisplayFormat("dd/MM/yyyy")
         self.date_edit.setMaximumDate(QDate.currentDate())
@@ -120,7 +119,7 @@ class TransactionDialog(_BaseDialog):
         self.time_edit = QTimeEdit()
         self.time_edit.setDisplayFormat("HH:mm")
 
-        self.account_combo = QComboBox()
+        self.account_combo = ComboBox()
         for account_id, name in accounts:
             self.account_combo.addItem(name, account_id)
 
@@ -173,7 +172,7 @@ class TransactionDialog(_BaseDialog):
         self.category_combo.clear()
         for category in self._categories:
             if category.kind == kind:
-                self.category_combo.addItem(f"{category.emoji} {category.name}".strip(), category.id)
+                self.category_combo.addItem(category.name, category.id)
         if previous is not None:
             self._select_category(int(previous))
         self.category_combo.blockSignals(False)
@@ -251,21 +250,17 @@ class CategoryDialog(_BaseDialog):
         self.name_input.setPlaceholderText("mis. Kopi")
         self.name_input.setMaxLength(40)
 
-        self.kind_combo = QComboBox()
+        self.kind_combo = ComboBox()
         self.kind_combo.addItem("Keluar (pengeluaran)", TYPE_EXPENSE)
         self.kind_combo.addItem("Masuk (pemasukan)", TYPE_INCOME)
 
-        self.emoji_input = QLineEdit()
-        self.emoji_input.setPlaceholderText("🍜")
-        self.emoji_input.setMaxLength(4)
-        self.emoji_input.setFixedWidth(70)
+        self._emoji = row.emoji if row is not None else ""
 
         self.keywords_input = QLineEdit()
         self.keywords_input.setPlaceholderText("kopi,latte,ngopi (dipisah koma)")
 
         self.form.addRow("Nama", self.name_input)
         self.form.addRow("Jenis", self.kind_combo)
-        self.form.addRow("Emoji", self.emoji_input)
         self.form.addRow("Kata kunci", self.keywords_input)
 
         hint = QLabel(
@@ -280,7 +275,6 @@ class CategoryDialog(_BaseDialog):
             self.name_input.setText(row.name)
             self.kind_combo.setCurrentIndex(1 if row.kind == TYPE_INCOME else 0)
             self.kind_combo.setEnabled(False)  # ubah jenis akan memutus transaksi lama
-            self.emoji_input.setText(row.emoji)
             self.keywords_input.setText(row.keywords)
         else:
             self.kind_combo.setCurrentIndex(1 if default_kind == TYPE_INCOME else 0)
@@ -297,7 +291,7 @@ class CategoryDialog(_BaseDialog):
         self.result_values = {
             "name": name,
             "kind": self.kind_combo.currentData() or TYPE_EXPENSE,
-            "emoji": self.emoji_input.text().strip(),
+            "emoji": self._emoji,
             "keywords": self.keywords_input.text().strip(),
         }
         self.accept()
@@ -317,12 +311,12 @@ class BudgetDialog(_BaseDialog):
         super().__init__(parent, "Atur Anggaran")
         self.result_values: dict | None = None
 
-        self.category_combo = QComboBox()
+        self.category_combo = ComboBox()
         for category in categories:
             if category.kind != TYPE_EXPENSE:
                 continue
             self.category_combo.addItem(
-                f"{category.emoji} {category.name}".strip(), category.id
+                category.name, category.id
             )
 
         self.amount_input = QLineEdit()

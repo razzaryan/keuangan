@@ -7,7 +7,6 @@ from pathlib import Path
 from PySide6.QtCore import QSettings, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -20,7 +19,7 @@ from PySide6.QtWidgets import (
 
 from bot.ledger import LedgerError
 from desktop.pages.base import Page, clear_layout
-from desktop.widgets import Card
+from desktop.widgets import Card, ComboBox
 
 TIMEZONES = [
     ("WIB — Asia/Jakarta", "Asia/Jakarta"),
@@ -66,7 +65,7 @@ class SettingsPage(Page):
 
         tz_row = QHBoxLayout()
         tz_row.setSpacing(10)
-        self.tz_combo = QComboBox()
+        self.tz_combo = ComboBox()
         for label, value in TIMEZONES:
             self.tz_combo.addItem(label, value)
         save_tz = QPushButton("Simpan")
@@ -81,7 +80,7 @@ class SettingsPage(Page):
         appearance = Card("Tampilan")
         theme_row = QHBoxLayout()
         theme_row.setSpacing(10)
-        self.theme_combo = QComboBox()
+        self.theme_combo = ComboBox()
         for label, value in THEMES:
             self.theme_combo.addItem(label, value)
         self.theme_combo.currentIndexChanged.connect(self._apply_theme_choice)

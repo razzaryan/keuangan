@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication
 
 LIGHT = {
@@ -17,8 +18,8 @@ LIGHT = {
     "surface_alt": "#F8FAFC",
     "border": "#E2E8F0",
     "text": "#0F172A",
-    "muted": "#64748B",
-    "faint": "#94A3B8",
+    "muted": "#475569",
+    "faint": "#64748B",
     "sidebar": "#0F172A",
     "sidebar_text": "#94A3B8",
     "sidebar_active": "#1E293B",
@@ -40,8 +41,8 @@ DARK = {
     "surface_alt": "#16213A",
     "border": "#1F2A44",
     "text": "#E2E8F0",
-    "muted": "#94A3B8",
-    "faint": "#64748B",
+    "muted": "#A8B4C6",
+    "faint": "#8FA3BF",
     "sidebar": "#070D18",
     "sidebar_text": "#8FA3BF",
     "sidebar_active": "#16213A",
@@ -172,7 +173,7 @@ QLabel#BrandMark {{
 }}
 
 QLabel#BrandSub {{
-    color: {c['faint']};
+    color: {c['sidebar_text']};
     font-size: 11px;
 }}
 
@@ -222,6 +223,11 @@ QPushButton:disabled {{
     background: {c['surface_alt']};
 }}
 
+QPushButton:focus {{
+    border: 2px solid {c['accent']};
+    padding: 7px 13px;
+}}
+
 QPushButton#Primary {{
     background: {c['accent']};
     color: #FFFFFF;
@@ -235,6 +241,11 @@ QPushButton#Primary:hover {{
 QPushButton#Primary:disabled {{
     background: {c['border']};
     color: {c['faint']};
+}}
+
+QPushButton#Primary:focus {{
+    border: 2px solid {c['text']};
+    padding: 6px 12px;
 }}
 
 QPushButton#Ghost {{
@@ -266,7 +277,12 @@ QLineEdit, QComboBox, QDateEdit, QTimeEdit, QSpinBox, QPlainTextEdit {{
 
 QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QTimeEdit:focus,
 QSpinBox:focus, QPlainTextEdit:focus {{
-    border: 1px solid {c['accent']};
+    border: 2px solid {c['accent']};
+    padding: 7px 9px;
+}}
+
+QComboBox, QDateEdit {{
+    padding-right: 30px;
 }}
 
 QLineEdit:disabled, QComboBox:disabled {{
@@ -280,9 +296,15 @@ QLineEdit#QuickEntry {{
     border-radius: 10px;
 }}
 
-QComboBox::drop-down {{
+QComboBox::drop-down, QDateEdit::drop-down {{
     border: none;
-    width: 22px;
+    width: 26px;
+}}
+
+QComboBox::down-arrow, QDateEdit::down-arrow {{
+    image: none;
+    width: 0;
+    height: 0;
 }}
 
 QComboBox QAbstractItemView {{
@@ -303,6 +325,10 @@ QTableView {{
     selection-background-color: {c['selection']};
     selection-color: {c['text']};
     outline: none;
+}}
+
+QTableView:focus {{
+    border: 2px solid {c['accent']};
 }}
 
 QTableView::item {{
@@ -475,5 +501,32 @@ QStatusBar QLabel#Faint {{
 
 def apply_theme(app: QApplication, mode: str) -> Palette:
     palette = palette_for(mode)
+    colors = palette.colors
+
+    qt_palette = QPalette()
+    qt_palette.setColor(QPalette.ColorRole.Window, QColor(colors["bg"]))
+    qt_palette.setColor(QPalette.ColorRole.WindowText, QColor(colors["text"]))
+    qt_palette.setColor(QPalette.ColorRole.Base, QColor(colors["input"]))
+    qt_palette.setColor(QPalette.ColorRole.AlternateBase, QColor(colors["surface_alt"]))
+    qt_palette.setColor(QPalette.ColorRole.Text, QColor(colors["text"]))
+    qt_palette.setColor(QPalette.ColorRole.Button, QColor(colors["surface"]))
+    qt_palette.setColor(QPalette.ColorRole.ButtonText, QColor(colors["text"]))
+    qt_palette.setColor(QPalette.ColorRole.Highlight, QColor(colors["accent"]))
+    qt_palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+    qt_palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(colors["muted"]))
+    qt_palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(colors["surface"]))
+    qt_palette.setColor(QPalette.ColorRole.ToolTipText, QColor(colors["text"]))
+    for role in (
+        QPalette.ColorRole.WindowText,
+        QPalette.ColorRole.Text,
+        QPalette.ColorRole.ButtonText,
+    ):
+        qt_palette.setColor(QPalette.ColorGroup.Disabled, role, QColor(colors["faint"]))
+    qt_palette.setColor(
+        QPalette.ColorGroup.Disabled,
+        QPalette.ColorRole.Base,
+        QColor(colors["surface_alt"]),
+    )
+    app.setPalette(qt_palette)
     app.setStyleSheet(build_stylesheet(palette))
     return palette

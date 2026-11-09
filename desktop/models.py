@@ -79,7 +79,7 @@ class TransactionModel(QAbstractTableModel):
             return row.id
 
         if role == Qt.ItemDataRole.ToolTipRole:
-            return f"#{row.id} · {row.note or '(tanpa catatan)'}"
+            return row.note or "(tanpa catatan)"
 
         return None
 

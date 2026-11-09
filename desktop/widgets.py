@@ -2,20 +2,90 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QRectF, Qt
-from PySide6.QtGui import QColor, QFont, QPainter
+from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtGui import QColor, QFont, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
+    QComboBox,
+    QDateEdit,
     QFrame,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QSizePolicy,
     QTableView,
     QVBoxLayout,
     QWidget,
-    QHeaderView,
 )
 
 from bot.models import TYPE_INCOME
+
+
+class ComboBox(QComboBox):
+    """Combo box dengan chevron yang digambar sendiri, konsisten di dua tema."""
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - nama dari Qt
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        color = self.palette().color(
+            QPalette.ColorGroup.Disabled if not self.isEnabled() else QPalette.ColorGroup.Active,
+            QPalette.ColorRole.Text,
+        )
+        pen = QPen(color, 1.4)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        x = self.width() - 14
+        y = self.height() / 2
+        painter.drawLine(QPointF(x - 3.5, y - 2), QPointF(x, y + 1.5))
+        painter.drawLine(QPointF(x, y + 1.5), QPointF(x + 3.5, y - 2))
+        painter.end()
+
+
+class DateEdit(QDateEdit):
+    """Date edit dengan ikon kalender kecil agar terlihat bisa dibuka."""
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - nama dari Qt
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        color = self.palette().color(
+            QPalette.ColorGroup.Disabled if not self.isEnabled() else QPalette.ColorGroup.Active,
+            QPalette.ColorRole.Text,
+        )
+        pen = QPen(color, 1.2)
+        painter.setPen(pen)
+        icon = QRectF(self.width() - 19, self.height() / 2 - 5.5, 12, 11)
+        painter.drawRoundedRect(icon, 1.5, 1.5)
+        painter.drawLine(icon.left(), icon.top() + 3.5, icon.right(), icon.top() + 3.5)
+        painter.drawLine(icon.left() + 3, icon.top() - 1.5, icon.left() + 3, icon.top() + 1)
+        painter.drawLine(icon.right() - 3, icon.top() - 1.5, icon.right() - 3, icon.top() + 1)
+        painter.end()
+
+
+class SortHeaderView(QHeaderView):
+    """Header tabel dengan penanda urutan yang tetap terlihat di atas QSS."""
+
+    def paintSection(self, painter, rect, logical_index) -> None:  # noqa: N802 - nama dari Qt
+        super().paintSection(painter, rect, logical_index)
+        if not self.isSortIndicatorShown() or self.sortIndicatorSection() != logical_index:
+            return
+        if rect.width() < 40:
+            return
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        color = self.palette().color(QPalette.ColorRole.WindowText)
+        pen = QPen(color, 1.4)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        x = rect.right() - 11
+        y = rect.center().y()
+        if self.sortIndicatorOrder() == Qt.SortOrder.AscendingOrder:
+            painter.drawLine(x - 3, y + 1, x, y - 2)
+            painter.drawLine(x, y - 2, x + 3, y + 1)
+        else:
+            painter.drawLine(x - 3, y - 1, x, y + 2)
+            painter.drawLine(x, y + 2, x + 3, y - 1)
+        painter.restore()
 
 
 class Card(QFrame):
@@ -150,9 +220,11 @@ def configure_table(table: QTableView) -> QTableView:
     table.setWordWrap(False)
     table.verticalHeader().setVisible(False)
     table.verticalHeader().setDefaultSectionSize(40)
-    table.horizontalHeader().setHighlightSections(False)
-    table.horizontalHeader().setStretchLastSection(True)
-    table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+    header = SortHeaderView(Qt.Orientation.Horizontal, table)
+    table.setHorizontalHeader(header)
+    header.setHighlightSections(False)
+    header.setStretchLastSection(True)
+    header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
     return table
 
 
@@ -215,7 +287,7 @@ def transaction_row(row, palette) -> QWidget:
     note.setStyleSheet("font-weight: 600;")
     left.addWidget(note)
 
-    meta = QLabel(f"{row.category} · {row.when:%d/%m %H:%M} · #{row.id}")
+    meta = QLabel(f"{row.category} · {row.when:%d/%m %H:%M}")
     meta.setObjectName("Faint")
     left.addWidget(meta)
 

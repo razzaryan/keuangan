@@ -3,7 +3,7 @@
 Versi desktop dari proyek ini: aplikasi Qt/PySide6 yang jalan sebagai jendela
 biasa, tidak lewat browser atau terminal.
 
-![Dashboard](screenshots/light-dashboard.png)
+![Ringkasan](screenshots/light-dashboard.png)
 
 ## Menjalankan
 
@@ -23,9 +23,9 @@ shortcut Start Menu dan Desktop.
 
 | Halaman | Isi |
 |---|---|
-| Dashboard | Saldo, pemasukan/pengeluaran bulan ini, transaksi hari ini, peringatan anggaran, kotak catat cepat |
-| Transaksi | Tabel transaksi; filter bulan dan jenis, cari catatan, ubah, hapus, undo |
-| Laporan | Ringkasan bulanan, pengeluaran per kategori, tren 12 bulan, export CSV |
+| Ringkasan | Saldo, pemasukan/pengeluaran bulan ini, transaksi hari ini, peringatan anggaran, kotak catat cepat |
+| Transaksi | Tabel transaksi; filter bulan dan jenis, cari catatan, ubah, hapus, batalkan |
+| Laporan | Ringkasan bulanan, pengeluaran per kategori, tren 12 bulan, ekspor CSV |
 | Anggaran | Batas bulanan per kategori, progress bar, status |
 | Kategori | Tambah, ubah, hapus kategori beserta kata kuncinya |
 | Pengaturan | Nama, zona waktu, tema, lokasi data, backup, impor database |

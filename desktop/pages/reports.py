@@ -31,7 +31,7 @@ class ReportsPage(Page):
     # ---------------------------------------------------------- UI
 
     def _build(self) -> None:
-        export_button = QPushButton("Export CSV")
+        export_button = QPushButton("Ekspor CSV")
         export_button.clicked.connect(self._export)
         self.header_actions.addWidget(export_button)
 
@@ -126,7 +126,7 @@ class ReportsPage(Page):
             total=report.expense,
             color=self.palette["expense"],
             empty_title="Belum ada pengeluaran",
-            empty_sub="Catat pengeluaran pertamamu dari halaman Dashboard.",
+            empty_sub="Catat pengeluaran pertamamu dari halaman Ringkasan.",
         )
         self._fill_breakdown(
             self.income_body,
@@ -155,7 +155,7 @@ class ReportsPage(Page):
             return
 
         largest = max((amount for _e, _n, amount in items), default=1) or 1
-        for emoji, name, amount in items:
+        for _emoji, name, amount in items:
             row = QWidget()
             box = QVBoxLayout(row)
             box.setContentsMargins(0, 0, 0, 0)
@@ -163,7 +163,7 @@ class ReportsPage(Page):
 
             head = QHBoxLayout()
             head.setContentsMargins(0, 0, 0, 0)
-            label = QLabel(f"{emoji} {name}".strip())
+            label = QLabel(name)
             label.setStyleSheet("font-weight: 600;")
             head.addWidget(label)
             head.addStretch(1)

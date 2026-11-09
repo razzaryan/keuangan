@@ -5,7 +5,6 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QComboBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -23,7 +22,7 @@ from desktop.dialogs import TransactionDialog
 from desktop.models import COL_AMOUNT, COL_CATEGORY, COL_DATE, COL_KIND, COL_NOTE
 from desktop.models import TransactionModel
 from desktop.pages.base import Page
-from desktop.widgets import Card, configure_table
+from desktop.widgets import Card, ComboBox, configure_table
 
 
 class TransactionsPage(Page):
@@ -48,7 +47,7 @@ class TransactionsPage(Page):
         add_button.clicked.connect(self._add)
         self.header_actions.addWidget(add_button)
 
-        undo_button = QPushButton("Undo terakhir")
+        undo_button = QPushButton("Batalkan terakhir")
         undo_button.clicked.connect(self._undo)
         self.header_actions.addWidget(undo_button)
 
@@ -56,7 +55,7 @@ class TransactionsPage(Page):
         bar = QHBoxLayout()
         bar.setSpacing(10)
 
-        self.month_combo = QComboBox()
+        self.month_combo = ComboBox()
         self.month_combo.setMinimumWidth(150)
         now = local_now(self.service.tz)
         year, month = now.year, now.month
@@ -66,7 +65,7 @@ class TransactionsPage(Page):
         self.month_combo.addItem("Semua waktu", None)
         self.month_combo.currentIndexChanged.connect(self.refresh)
 
-        self.kind_combo = QComboBox()
+        self.kind_combo = ComboBox()
         self.kind_combo.addItem("Semua jenis", None)
         self.kind_combo.addItem("Keluar", TYPE_EXPENSE)
         self.kind_combo.addItem("Masuk", TYPE_INCOME)
@@ -217,7 +216,7 @@ class TransactionsPage(Page):
         answer = QMessageBox.question(
             self,
             "Hapus transaksi",
-            f"Hapus transaksi #{row.id}?\n\n{row.note or '(tanpa catatan)'}\n"
+            f"Hapus transaksi ini?\n\n{row.note or '(tanpa catatan)'}\n"
             f"{row.category} · {money(row.amount)}",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -242,7 +241,7 @@ class TransactionsPage(Page):
             self._info("Belum ada transaksi untuk dibatalkan.")
             return
         self._info(
-            f"Dibatalkan: #{row.id} {row.category} · {row.note or '(tanpa catatan)'}"
+            f"Dibatalkan: {row.category} · {row.note or '(tanpa catatan)'}"
         )
         self.changed.emit()
 
